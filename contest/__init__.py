@@ -1,5 +1,4 @@
 from otree.api import *
-from pip._internal import models
 
 doc = """
 Your app description
@@ -16,11 +15,24 @@ class C(BaseConstants):
 
 class Subsession(BaseSubsession):
     csf = models.StringField()
-    is_paid = models.BooleanField
+    is_paid = models.BooleanField()
+
+    def setup_round(self):
+        self.csf = "share"
+        self.is_paid = True
+        for group in self.get_groups():
+            group.setup_round()
+
 
 class Group(BaseGroup):
     cost_per_ticket = models.CurrencyField()
-    Prize = models.CurrencyField()
+    prize = models.CurrencyField()
+
+    def setup_round(self):
+        self.cost_per_ticket = C.COST_PER_TICKET
+        self.prize = C.PRIZE
+        for player in self.get_players():
+            player.setup_round()
 
 
 class Player(BasePlayer):
@@ -29,10 +41,17 @@ class Player(BasePlayer):
     prize_won = models.FloatField()
     earnings = models.CurrencyField()
 
+    def setup_round(self):
+        self.endowment = C.ENDOWMENT
 
 # PAGES
 class StartRound(WaitPage):
-    pass
+    wait_for_all_groups = True
+
+    @staticmethod
+    def after_all_players_arrive(subsession):
+        subsession.setup_round()
+
 
 class Intro(Page):
     @staticmethod
