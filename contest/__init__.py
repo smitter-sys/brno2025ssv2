@@ -60,7 +60,8 @@ class Intro(Page):
 
 
 class Decision(Page):
-    pass
+    form_model = "player" #almost always player
+    form_fields = ["tickets_purchased"]
 
 
 class ResultsWaitPage(WaitPage):
