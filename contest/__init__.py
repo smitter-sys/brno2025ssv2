@@ -23,17 +23,37 @@ class Subsession(BaseSubsession):
         for group in self.get_groups():
             group.setup_round()
 
+    def determine_outcome(self):
+        for group in self.get_groups():
+            group.determine_outcome()
 
 class Group(BaseGroup):
     cost_per_ticket = models.CurrencyField()
     prize = models.CurrencyField()
-
+@property
+    def total_tickets_purchased(self):
+        return sum(player.tickets_purchased for player in self.get_players())
     def setup_round(self):
         self.cost_per_ticket = C.COST_PER_TICKET
         self.prize = C.PRIZE
         for player in self.get_players():
             player.setup_round()
 
+    def determine_outcome(self):
+ #       total = 0 this an alternative way of calculating determine_outcome(self)
+    #    for player in self.get_players():
+    #        total += player.tickets_purchased
+        total = sum(player.tickets_purchased for player in self.get_players()) #this is a comprehension, specifically a list comprehension
+        for player in self.get_players():
+            try:
+                player.prize_won = player.tickets_purchased / total
+            except ZeroDivisionError:
+                player.prize_won = 1/len(self.get_players())
+            player.earnings = (
+                    player.endowment -
+                    player.tickets_purchased * self.cost_per_ticket +
+                    self.prize * player.prize_won
+            )
 
 class Player(BasePlayer):
     endowment = models.CurrencyField()
@@ -50,7 +70,7 @@ class Player(BasePlayer):
 
     @property
     def tickets_purchased_by_others(self):
-        return self.coplayer.tickets_purchased
+        return self.group.total_tickets_purchased - self.tickets_purchased
 
 # PAGES
 class StartRound(WaitPage):
@@ -73,7 +93,11 @@ class Decision(Page):
 
 
 class ResultsWaitPage(WaitPage):
-    pass
+    wait_for_all_groups = True
+
+    @staticmethod
+    def after_all_players_arrive(subsession):
+        subsession.determine_outcome()
 
 
 class Results(Page):
