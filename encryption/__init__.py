@@ -20,25 +20,36 @@ class Subsession(BaseSubsession):
 
 
 class Group(BaseGroup):
-    reponse_1 = models.IntegerField()
-    reponse_2 = models.IntegerField()
-
+    pass
 
 class Player(BasePlayer):
-    pass
+    response_1 = models.IntegerField()
+    response_2 = models.IntegerField()
+    response_3 = models.IntegerField()
+    response_4 = models.IntegerField()
+    response_5 = models.IntegerField()
+    is_correct = models.BooleanField()
 
 
 # PAGES
-class MyPage(Page):
-    pass
+class Intro(Page):
+    def is_displayed(player):
+        return player.round_number == 1
 
-
-class ResultsWaitPage(WaitPage):
-    pass
+class Decision(Page):
+    form_model = "player"
+    form_fields = ["response_1",
+                   "response_2"]
+                   #'response_3',
+                   #'response_4',
+                   #'response_5']
 
 
 class Results(Page):
-    pass
+    @staticmethod
+    def is_displayed(player):
+        return player.round_number == C.NUM_ROUNDS
+
 
 
 page_sequence = [Intro,
