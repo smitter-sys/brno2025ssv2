@@ -1,7 +1,13 @@
 {{ block title }}
-    Word {{ player.number_round }} to encode
+    Word {{ player.round_number }} to encode
 {{ endblock }}
 {{ block content }}
+
+
+The lookup table is {[ subsession.lookup_dict }}
+
+The word to encode is {{ subsession.word}}
+
 
     {{ formfields }}
     {{ next_button }}
