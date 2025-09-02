@@ -1,10 +1,11 @@
 {{ block title }}
-    Decision For Round 1
+    Decision For Round {{player.round_number}}
 {{ endblock }}
 {{ block content }}
-Your Endowment is {{player.endowment}}
-Your cost per ticket is {{group.cost_per_ticket}}
-The value of the prize is {{group.prize}}
+Your Endowment is {{ player.endowment }}
+Your cost per ticket is {{ group.cost_per_ticket }}
+The value of the prize is {{ group.prize }}
+
     {{ formfields }}
     {{ next_button }}
 
