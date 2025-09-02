@@ -77,7 +77,7 @@ class Group(BaseGroup):
             if player == winner:
                 player.prize_won = 1
             else:
-                player.prize_won = 0 
+                player.prize_won = 0
 
 
     def determine_outcome(self):
