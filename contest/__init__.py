@@ -30,7 +30,7 @@ class Subsession(BaseSubsession):
 class Group(BaseGroup):
     cost_per_ticket = models.CurrencyField()
     prize = models.CurrencyField()
-@property
+    @property
     def total_tickets_purchased(self):
         return sum(player.tickets_purchased for player in self.get_players())
     def setup_round(self):
@@ -65,6 +65,9 @@ class Player(BasePlayer):
         self.endowment = C.ENDOWMENT
 
     @property
+    def max_tickets_affordable(self):
+            return int(self.endowment / self.group.cost_per_ticket)
+    @property
     def coplayer(self):
         return self.group.get_player_by_id(3 - self.id_in_group)
 
@@ -90,6 +93,14 @@ class Intro(Page):
 class Decision(Page):
     form_model = "player" #almost always player
     form_fields = ["tickets_purchased"]
+
+    @staticmethod
+    def error_message(player, values):
+        if values["tickets_purchased"] < 0:
+            return "You cannot buy a negative number of tickets."
+        if values["tickets_purchased"] > player.max_tickets_affordable:
+            return f"You can only afford to buy {player.max_tickets_affordable} tickets." #put an f beforehand to include the variable in the string
+        return None
 
 
 class ResultsWaitPage(WaitPage):
