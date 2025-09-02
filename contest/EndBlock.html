@@ -1,10 +1,20 @@
 {{ block title }}
-   Page Title
+   End of Contests
 {{ endblock }}
 
 {{ block content }}
 
+{{for rd in player.in_paid_rounds }}
+    In round {{ rd.round_number }}
+    your purchased {{ rd.tickets_purchased }},
+    received {{ rd.prize_won }} of the prize,
+    and earned {{ rd.earnings }}.
+
+    <br/>
+    {{ endfor }}
+
     {{ next_button }}
+
 {{ endblock }}
 
 

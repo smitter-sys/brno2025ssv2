@@ -1,3 +1,5 @@
+import random
+
 from otree.api import *
 
 doc = """
@@ -9,19 +11,27 @@ class C(BaseConstants):
     NAME_IN_URL = 'contest'
     PLAYERS_PER_GROUP = 2
     NUM_ROUNDS = 3
+    NUM_PAID_ROUNDS = 1
     ENDOWMENT = 10
     COST_PER_TICKET = 0.5
     PRIZE = 8
 
 class Subsession(BaseSubsession):
     csf = models.StringField()
-    is_paid = models.BooleanField()
+    is_paid = models.BooleanField(initial=False)
 
     def setup_round(self):
-        self.csf = "share"
-        self.is_paid = True
+        self.csf = self.session.config["contest_csf"]
+        if self.round_number == 1:
+            self.setup_paid_rounds()
+        self.is_paid = self.round_number % 2 == 1
         for group in self.get_groups():
             group.setup_round()
+    def setup_paid_rounds(self):
+        for rd in random.sample(self.in_rounds(1,C.NUM_ROUNDS),
+                      k=C.NUM_PAID_ROUNDS):
+            rd_is_paid = True
+
 
     def determine_outcome(self):
         for group in self.get_groups():
@@ -39,21 +49,52 @@ class Group(BaseGroup):
         for player in self.get_players():
             player.setup_round()
 
-    def determine_outcome(self):
- #       total = 0 this an alternative way of calculating determine_outcome(self)
-    #    for player in self.get_players():
-    #        total += player.tickets_purchased
-        total = sum(player.tickets_purchased for player in self.get_players()) #this is a comprehension, specifically a list comprehension
+    def determine_outcome_allpay(self):
+        max_tickets = max(player.tickets_purchased for player in self.get_players())
+        num_tied = len([player for player in self.get_players()
+            if player.tickets_purchased == max_tickets])
+        for player in self.get_players():
+            if player.tickets_purchased == max_tickets:
+                player.prize_won = 1 / num_tied
+            else:
+                player.prize_won = 0
+
+    def determine_outcome_share(self):
+        total = self.total_tickets_purchased
         for player in self.get_players():
             try:
                 player.prize_won = player.tickets_purchased / total
             except ZeroDivisionError:
-                player.prize_won = 1/len(self.get_players())
+                player.prize_won = 1 / len(self.get_players())
+
+    def determine_outcome_lottery(self):
+        try:
+            winner = random.choices(self.get_players(), k=1,
+                        weights=[p.tickets_purchased for p in self.get_players()])[0]
+        except ValueError:
+            winner = random.choice(self.get_players())
+        for player in self.get_players():
+            if player == winner:
+                player.prize_won = 1
+            else:
+                player.prize_won = 0
+
+
+    def determine_outcome(self):
+        if self.subsession.csf == "share":
+            self.determine_outcome_share()
+        elif self.subsession.csf == "allpay":
+            self.determine_outcome_allpay()
+        elif self.subsession.csf == "lottery":
+            self.determine_outcome_lottery()
+        for player in self.get_players():
             player.earnings = (
                     player.endowment -
                     player.tickets_purchased * self.cost_per_ticket +
                     self.prize * player.prize_won
             )
+            if player.subsession.is_paid:
+                player.payoff = player.earnings
 
 class Player(BasePlayer):
     endowment = models.CurrencyField()
@@ -62,7 +103,7 @@ class Player(BasePlayer):
     earnings = models.CurrencyField()
 
     def setup_round(self):
-        self.endowment = C.ENDOWMENT
+        self.endowment = self.session.config.get("contest_endowment",C.ENDOWMENT)
 
     @property
     def max_tickets_affordable(self):
@@ -75,6 +116,9 @@ class Player(BasePlayer):
     def tickets_purchased_by_others(self):
         return self.group.total_tickets_purchased - self.tickets_purchased
 
+    @property
+    def in_paid_rounds(self):
+        return [rd for rd in self.in_all_rounds() if rd.subsession.is_paid]
 # PAGES
 class StartRound(WaitPage):
     wait_for_all_groups = True
