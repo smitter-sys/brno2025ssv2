@@ -1,5 +1,6 @@
 import string
 import time
+import random
 
 from otree.api import *
 
@@ -13,10 +14,11 @@ class C(BaseConstants):
     NAME_IN_URL = 'encryption'
     PLAYERS_PER_GROUP = None
     NUM_ROUNDS = 3
-    TIME_FOR_TASK = 60
-
+    TIME_FOR_TASK = 3000
+    RANDOM_SEED = 12345678
 
 class Subsession(BaseSubsession):
+    random_seed = models.IntegerField()
     payment_per_correct = models.CurrencyField()
     word = models.StringField()
     lookup_table = models.StringField()
@@ -24,8 +26,13 @@ class Subsession(BaseSubsession):
 
     def setup_round(self):
         self.payment_per_correct = Currency(0.10)
-        self.lookup_table = string.ascii_uppercase
-        self.word = "ABABA"
+        if self.round_number == 1:
+            self.random_seed = self.session.config.get("random_seed",C.RANDOM_SEED)
+            random.seed(self.random_seed)
+            self.lookup_table = "".join(random.sample(string.ascii_uppercase,k=26))
+        else:
+            self.lookup_table = self.in_round(1).lookup_table
+        self.word ="".join(random.choices(string.ascii_uppercase,k=5)) #create list of 5 random letters, join them with nothing - "" - in between
         self.time_for_task = C.TIME_FOR_TASK
 
 
@@ -66,16 +73,17 @@ class Player(BasePlayer):
 
     @property
     def response(self):
-        return {
+        return [
             self.response_1,
             self.response_2,
             self.response_3,
             self.response_4,
-            self.response_5
-        }
+            self.response_5,
+        ]
+
     def check_response(self):
         self.is_correct = (
-            self.response == self.subsession.correct_response
+                self.response == self.subsession.correct_response
         )
         if self.is_correct:
             self.payoff = self.subsession.payment_per_correct
@@ -84,13 +92,13 @@ class Player(BasePlayer):
         self.started_task_at = time.time()
 
     def get_time_elapsed(self):
-       return  time.time() - self.in_round(1).started_task_at
+        return time.time() - self.in_round(1).started_task_at
 
     def get_remaining_time(self):
-        return self.subsession.time_for_task - self.remaining_time
+        return self.subsession.time_for_task - self.get_time_elapsed()
 
 def creating_session(subsession):
-    subsession.setup_round()
+        subsession.setup_round()
 
 
 # PAGES
@@ -100,7 +108,7 @@ class Intro(Page):
         return player.round_number == 1
 
     def before_next_page(player, timeout_happened):
-        return player.started_task()
+        return player.start_task()
 
 
 class Decision(Page):
@@ -125,7 +133,8 @@ class Results(Page):
         return player.round_number == C.NUM_ROUNDS
 
 
-
-page_sequence = [Intro,
-                 Decision,
-                 Results]
+page_sequence = [
+    Intro,
+    Decision,
+    Results,
+]
