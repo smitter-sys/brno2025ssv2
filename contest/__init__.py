@@ -120,6 +120,11 @@ class Player(BasePlayer):
     @property
     def in_paid_rounds(self):
         return [rd for rd in self.in_all_rounds() if rd.subsession.is_paid]
+
+    def store_payoffs(self):
+        self.participant.vars["earnings_contest"] = (
+            sum(p.payoff for p in self.in_all_rounds())
+        )
 # PAGES
 class StartRound(WaitPage):
     wait_for_all_groups = True
@@ -165,6 +170,9 @@ class EndBlock(Page):
     def is_displayed(player):
         return player.round_number == C.NUM_ROUNDS
 
+    @staticmethod
+    def before_next_page(player, timeout_happened):
+        player.store_payoffs()
 page_sequence = [
     StartRound,
     Intro,

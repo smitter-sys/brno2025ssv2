@@ -37,9 +37,11 @@ dict(
 dict(
         name="summary_test",
         app_sequence=[
+            #"contest",
             "summary"
         ],
         num_demo_participants=2,
+        contest_csf="share"
     ),
     dict(
         name="splash_demo",
@@ -68,7 +70,7 @@ SESSION_CONFIG_DEFAULTS = dict(
     doc=""
 )
 
-PARTICIPANT_FIELDS = []
+PARTICIPANT_FIELDS = ["earnings_contest", "earnings_encryption"]
 SESSION_FIELDS = []
 
 # ISO-639 code

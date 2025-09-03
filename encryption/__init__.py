@@ -97,6 +97,11 @@ class Player(BasePlayer):
     def get_remaining_time(self):
         return self.subsession.time_for_task - self.get_time_elapsed()
 
+    def store_payoffs(self):
+        self.participant.earnings_encryption = (
+            sum(p.payoff for p in self.in_all_rounds()) #this notation requires participant fields in settings
+        )
+
 def creating_session(subsession):
         subsession.setup_round()
 
@@ -133,6 +138,9 @@ class Results(Page):
         return player.round_number == C.NUM_ROUNDS
 
 
+    @staticmethod
+    def before_next_page(player, timeout_happened):
+        player.store_payoffs()
 page_sequence = [
     Intro,
     Decision,
